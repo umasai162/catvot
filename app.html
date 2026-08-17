@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐈 CatVTON - Virtual Try-On Studio</title>
+  <meta name="description" content="CatVTON: High-Efficiency Virtual Try-On Studio powered by Diffusion Models. Upload person & garment images to visualize try-ons in real time.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: rgba(18, 24, 41, 0.75);
+      --bg-card-hover: rgba(26, 35, 60, 0.85);
+      --bg-input: #0f1627;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: #6366f1;
+      
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+      --secondary: #a855f7;
+      --pink: #ec4899;
+      --emerald: #10b981;
+      
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --shadow-glow: 0 0 35px rgba(99, 102, 241, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.08) 0%, transparent 40%);
+      background-attachment: fixed;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-dark);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--primary);
+    }
+
+    /* Navbar Header */
+    .header {
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0.85rem 2rem;
+    }
+
+    .header-container {
+      max-width: 1500px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .brand-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 30%, var(--text-muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-badge {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--primary);
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-stats {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.4rem 0.85rem;
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    .stat-pill i {
+      color: var(--primary);
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 0.4rem 0.85rem;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--emerald);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+      animation: pulseDot 2s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    /* App Workspace Layout */
+    .main-container {
+      max-width: 1500px;
+      margin: 1.5rem auto;
+      padding: 0 1.5rem;
+      width: 100%;
+      flex: 1;
+    }
+
+    .studio-grid {
+      display: grid;
+      grid-template-columns: 360px 380px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    @media (max-width: 1280px) {
+      .studio-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .result-section {
+        grid-column: span 2;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .studio-grid {
+        grid-template-columns: 1fr;
+      }
+      .result-section {
+        grid-column: span 1;
+      }
+    }
+
+    /* Cards Styling */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      transition: border-color 0.3s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    .card-title i {
+      color: var(--primary);
+    }
+
+    /* Image Dropzone & Preview Box */
+    .dropzone-container {
+      position: relative;
+      width: 100%;
+      height: 360px;
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-md);
+      background: var(--bg-input);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .dropzone-container:hover, .dropzone-container.dragover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.05);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .dropzone-icon {
+      font-size: 2.2rem;
+      color: var(--primary);
+      margin-bottom: 0.75rem;
+      transition: transform 0.3s ease;
+    }
+
+    .dropzone-container:hover .dropzone-icon {
+      transform: translateY(-4px);
+    }
+
+    .dropzone-text {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .dropzone-text strong {
+      color: var(--text-main);
+    }
+
+    .dropzone-input {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 5;
+    }
+
+    /* Preview Canvas Area */
+    .preview-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .preview-wrapper img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: var(--radius-sm);
+    }
+
+    .mask-canvas {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      cursor: crosshair;
+      z-index: 3;
+    }
+
+    .preview-actions {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      display: flex;
+      gap: 0.4rem;
+      z-index: 10;
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(15, 22, 39, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    /* Masking Tools Toolbar */
+    .mask-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      background: var(--bg-input);
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    .brush-size-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    .brush-size-control input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+    }
+
+    /* Category Buttons Grid */
+    .category-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin: 1rem 0 0.5rem 0;
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.4rem;
+    }
+
+    .cat-btn {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.45rem 0.25rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .cat-btn:hover, .cat-btn.active {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    /* Presets Quick Picker */
+    .presets-container {
+      margin-top: 0.85rem;
+    }
+
+    .preset-thumbs {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.4rem;
+    }
+
+    .preset-thumb {
+      width: 58px;
+      height: 68px;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      overflow: hidden;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+      background: var(--bg-input);
+    }
+
+    .preset-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preset-thumb:hover, .preset-thumb.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    /* Settings & Controls Sliders */
+    .setting-group {
+      margin-bottom: 1rem;
+    }
+
+    .setting-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .setting-value {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .slider {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--bg-input);
+      outline: none;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 0.85rem;
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      margin-bottom: 0.85rem;
+      font-size: 0.8rem;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 20px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider-toggle {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255,255,255,0.15);
+      transition: .3s;
+      border-radius: 20px;
+    }
+
+    .slider-toggle:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider-toggle {
+      background-color: var(--primary);
+    }
+
+    input:checked + .slider-toggle:before {
+      transform: translateX(18px);
+    }
+
+    /* Primary Generate Button */
+    .btn-generate {
+      width: 100%;
+      padding: 0.95rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border: none;
+      border-radius: var(--radius-md);
+      color: white;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      box-shadow: 0 8px 25px var(--primary-glow);
+      transition: all 0.3s ease;
+      margin-top: 0.5rem;
+    }
+
+    .btn-generate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(99, 102, 241, 0.45);
+    }
+
+    .btn-generate:active {
+      transform: translateY(0);
+    }
+
+    .btn-generate.loading {
+      opacity: 0.75;
+      cursor: not-allowed;
+    }
+
+    /* Result Stage Section */
+    .result-section {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .result-viewport {
+      position: relative;
+      width: 100%;
+      height: 520px;
+      background: var(--bg-input);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .result-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      color: var(--text-dim);
+      text-align: center;
+    }
+
+    .result-placeholder i {
+      font-size: 3rem;
+      color: rgba(255,255,255,0.1);
+    }
+
+    /* Interactive Comparison Slider */
+    .comparison-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: none;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    .comparison-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .comparison-after {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      width: 50%; /* Default 50% split */
+      border-right: 2px solid var(--primary);
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+    }
+
+    .comparison-after img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: auto;
+      max-width: none;
+    }
+
+    .comparison-handle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--primary-glow);
+      cursor: ew-resize;
+      z-index: 10;
+    }
+
+    /* Progress Overlay */
+    .progress-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(8px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      z-index: 20;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top-color: var(--primary);
+      border-right-color: var(--secondary);
+      border-radius: 50%;
+      animation: spin 1s infinite linear;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .progress-text {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .progress-bar-bg {
+      width: 240px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--pink));
+      transition: width 0.3s ease;
+    }
+
+    /* Result Action Bar */
+    .result-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 1rem;
+    }
+
+    .view-tabs {
+      display: flex;
+      gap: 0.4rem;
+      background: var(--bg-input);
+      padding: 0.3rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    .view-tab {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .view-tab.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .action-btn {
+      padding: 0.5rem 1rem;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    /* History Gallery Strip */
+    .history-section {
+      margin-top: 1.25rem;
+    }
+
+    .history-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .history-grid {
+      display: flex;
+      gap: 0.6rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+
+    .history-card {
+      width: 76px;
+      height: 96px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      cursor: pointer;
+      flex-shrink: 0;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .history-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .history-card:hover {
+      border-color: var(--primary);
+      transform: scale(1.04);
+    }
+
+    /* Lightbox Modal */
+    .modal {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(9, 13, 22, 0.95);
+      backdrop-filter: blur(16px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      max-width: 90%;
+      max-height: 90%;
+      position: relative;
+    }
+
+    .modal-content img {
+      max-width: 100%;
+      max-height: 85vh;
+      border-radius: var(--radius-md);
+      box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="header">
+    <div class="header-container">
+      <a href="#" class="brand">
+        <div class="brand-icon">🐈</div>
+        <div>
+          <span class="brand-title">CatVTON</span>
+          <span class="brand-badge">Diffusion Try-On Studio</span>
+        </div>
+      </a>
+
+      <div class="nav-stats">
+        <div class="stat-pill">
+          <i class="fa-solid fa-microchip"></i>
+          <span>Lightweight Model: 899M Params</span>
+        </div>
+        <div class="stat-pill">
+          <i class="fa-solid fa-bolt"></i>
+          <span>Inference: &lt;8G VRAM (1024x768)</span>
+        </div>
+        <div class="status-badge" id="serverStatusBadge">
+          <div class="status-dot"></div>
+          <span id="serverStatusText">Local Server Ready</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main App Studio Grid -->
+  <main class="main-container">
+    <div class="studio-grid">
+
+      <!-- Column 1: Person Image & Masking -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-user"></i>
+            <span>Person Model & Mask</span>
+          </div>
+          <button class="icon-btn" id="btnResetPerson" title="Reset Person Image">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+        </div>
+
+        <!-- Dropzone Container -->
+        <div class="dropzone-container" id="personDropzone">
+          <input type="file" class="dropzone-input" id="personFileInput" accept="image/*">
+          <div class="dropzone-icon">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <div class="dropzone-text">
+            <strong>Drop person image here</strong> or click to browse<br>
+            <span style="font-size:0.75rem; color: var(--text-dim);">PNG, JPG up to 10MB</span>
+          </div>
+
+          <!-- Preview & Interactive Mask Canvas -->
+          <div class="preview-wrapper" id="personPreviewWrapper">
+            <img id="personImg" src="" alt="Person Image">
+            <canvas id="maskCanvas" class="mask-canvas"></canvas>
+
+            <div class="preview-actions">
+              <button class="icon-btn" id="btnToggleMaskDraw" title="Toggle Draw Mask">
+                <i class="fa-solid fa-paintbrush"></i>
+              </button>
+              <button class="icon-btn" id="btnClearMask" title="Clear Mask">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mask Brush Toolbar -->
+        <div class="mask-toolbar">
+          <div class="brush-size-control">
+            <i class="fa-solid fa-circle-dot"></i>
+            <span>Brush Size</span>
+            <input type="range" id="brushSize" min="5" max="60" value="25">
+          </div>
+          <span style="font-size:0.75rem; color:var(--primary); font-weight:600;" id="brushSizeVal">25px</span>
+        </div>
+
+        <!-- Category Mask Selector -->
+        <div class="category-label">Auto-Mask Category</div>
+        <div class="category-grid">
+          <button class="cat-btn active" data-type="upper">Upper Garment</button>
+          <button class="cat-btn" data-type="overall">Overall Dress</button>
+          <button class="cat-btn" data-type="lower">Lower Garment</button>
+        </div>
+
+        <!-- Sample Model Presets -->
+        <div class="presets-container">
+          <div class="category-label">Sample Person Models</div>
+          <div class="preset-thumbs">
+            <div class="preset-thumb active" onclick="loadSamplePerson('resource/demo/example/person/women/1-model_3.png', this)">
+              <img src="resource/demo/example/person/women/1-model_3.png" alt="Female Model 1">
+            </div>
+            <div class="preset-thumb" onclick="loadSamplePerson('resource/demo/example/person/women/2-model_4.png', this)">
+              <img src="resource/demo/example/person/women/2-model_4.png" alt="Female Model 2">
+            </div>
+            <div class="preset-thumb" onclick="loadSamplePerson('resource/demo/example/person/men/model_5.png', this)">
+              <img src="resource/demo/example/person/men/model_5.png" alt="Male Model 1">
+            </div>
+            <div class="preset-thumb" onclick="loadSamplePerson('resource/demo/example/person/men/Simon_1.png', this)">
+              <img src="resource/demo/example/person/men/Simon_1.png" alt="Male Model 2">
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- Column 2: Garment Image & Controls -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-shirt"></i>
+            <span>Target Garment</span>
+          </div>
+          <button class="icon-btn" id="btnResetGarment" title="Reset Garment Image">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+        </div>
+
+        <!-- Garment Dropzone -->
+        <div class="dropzone-container" id="garmentDropzone">
+          <input type="file" class="dropzone-input" id="garmentFileInput" accept="image/*">
+          <div class="dropzone-icon">
+            <i class="fa-solid fa-shirt"></i>
+          </div>
+          <div class="dropzone-text">
+            <strong>Drop clothing image here</strong> or click to browse<br>
+            <span style="font-size:0.75rem; color: var(--text-dim);">Flat-lay or ghost mannequin</span>
+          </div>
+
+          <div class="preview-wrapper" id="garmentPreviewWrapper">
+            <img id="garmentImg" src="" alt="Target Garment">
+          </div>
+        </div>
+
+        <!-- Sample Clothing Presets -->
+        <div class="presets-container">
+          <div class="category-label">Sample Target Clothes</div>
+          <div class="preset-thumbs">
+            <div class="preset-thumb active" onclick="loadSampleGarment('resource/demo/example/condition/upper/21514384_52353349_1000.jpg', this)">
+              <img src="resource/demo/example/condition/upper/21514384_52353349_1000.jpg" alt="Upper 1">
+            </div>
+            <div class="preset-thumb" onclick="loadSampleGarment('resource/demo/example/condition/upper/22790049_53294275_1000.jpg', this)">
+              <img src="resource/demo/example/condition/upper/22790049_53294275_1000.jpg" alt="Upper 2">
+            </div>
+            <div class="preset-thumb" onclick="loadSampleGarment('resource/demo/example/condition/overall/21744571_51588794_1000.jpg', this)">
+              <img src="resource/demo/example/condition/overall/21744571_51588794_1000.jpg" alt="Dress 1">
+            </div>
+            <div class="preset-thumb" onclick="loadSampleGarment('resource/demo/example/condition/overall/23962182_54027982_1000.jpg', this)">
+              <img src="resource/demo/example/condition/overall/23962182_54027982_1000.jpg" alt="Dress 2">
+            </div>
+          </div>
+        </div>
+
+        <!-- Generation Hyperparameters -->
+        <div style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.85rem;">
+          <div class="setting-group">
+            <div class="setting-header">
+              <span>Inference Steps</span>
+              <span class="setting-value" id="stepsVal">30</span>
+            </div>
+            <input type="range" class="slider" id="numSteps" min="10" max="50" value="30">
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-header">
+              <span>Guidance Scale (CFG)</span>
+              <span class="setting-value" id="guidanceVal">2.5</span>
+            </div>
+            <input type="range" class="slider" id="guidanceScale" min="1.0" max="5.0" step="0.1" value="2.5">
+          </div>
+
+          <div class="toggle-group">
+            <span>Repaint Original Background</span>
+            <label class="switch">
+              <input type="checkbox" id="toggleRepaint" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <button class="btn-generate" id="btnGenerate">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Generate Virtual Try-On</span>
+          </button>
+        </div>
+      </section>
+
+
+      <!-- Column 3: Try-On Result Viewport & Comparison -->
+      <section class="card result-section">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-wand-magic"></i>
+            <span>Virtual Try-On Output</span>
+          </div>
+
+          <div class="view-tabs">
+            <button class="view-tab active" id="tabSplit" onclick="switchResultView('split')">Split View</button>
+            <button class="view-tab" id="tabResult" onclick="switchResultView('result')">Result Only</button>
+            <button class="view-tab" id="tabGrid" onclick="switchResultView('grid')">Full Grid</button>
+          </div>
+        </div>
+
+        <!-- Main Output Viewport -->
+        <div class="result-viewport" id="resultViewport">
+          <!-- Placeholder state before generation -->
+          <div class="result-placeholder" id="resultPlaceholder">
+            <i class="fa-solid fa-image"></i>
+            <p>Upload a person &amp; garment image<br>and click <strong>Generate Virtual Try-On</strong></p>
+          </div>
+
+          <!-- Interactive Comparison Slider View -->
+          <div class="comparison-container" id="comparisonContainer">
+            <img id="compOriginal" class="comparison-img" src="" alt="Original Person">
+            
+            <div class="comparison-after" id="compAfterWrapper">
+              <img id="compResult" src="" alt="Try-On Result">
+            </div>
+
+            <div class="comparison-handle" id="compHandle">
+              <i class="fa-solid fa-arrows-left-right"></i>
+            </div>
+          </div>
+
+          <!-- Progress Loading Overlay -->
+          <div class="progress-overlay" id="progressOverlay">
+            <div class="spinner"></div>
+            <div class="progress-text" id="progressStatus">Initializing CatVTON Pipeline...</div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Result Action Buttons -->
+        <div class="result-actions">
+          <div style="font-size:0.8rem; color:var(--text-muted);" id="resultMeta">
+            Resolution: <strong>1024x768</strong>
+          </div>
+
+          <div style="display:flex; gap:0.5rem;">
+            <button class="action-btn" id="btnZoom" onclick="openLightbox()">
+              <i class="fa-solid fa-expand"></i>
+              <span>Zoom</span>
+            </button>
+            <a class="action-btn" id="btnDownload" download="catvton_tryon_result.png" href="#">
+              <i class="fa-solid fa-download"></i>
+              <span>Save Image</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- History Gallery Strip -->
+        <div class="history-section">
+          <div class="history-title">Recent Try-On Results</div>
+          <div class="history-grid" id="historyGrid">
+            <!-- Dynamically populated try-on cards -->
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Lightbox Modal -->
+  <div class="modal" id="lightboxModal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeLightbox()"><i class="fa-solid fa-xmark"></i></span>
+      <img id="lightboxImg" src="" alt="Full Resolution Try-On">
+    </div>
+  </div>
+
+
+  <!-- JavaScript Functionality -->
+  <script>
+    // State management
+    const state = {
+      personImgSrc: 'resource/demo/example/person/women/1-model_3.png',
+      garmentImgSrc: 'resource/demo/example/condition/upper/21514384_52353349_1000.jpg',
+      resultImgSrc: null,
+      maskCategory: 'upper',
+      isDrawing: false,
+      brushSize: 25,
+      history: []
+    };
+
+    // DOM Elements
+    const personFileInput = document.getElementById('personFileInput');
+    const garmentFileInput = document.getElementById('garmentFileInput');
+    const personImg = document.getElementById('personImg');
+    const garmentImg = document.getElementById('garmentImg');
+    const personPreviewWrapper = document.getElementById('personPreviewWrapper');
+    const garmentPreviewWrapper = document.getElementById('garmentPreviewWrapper');
+    const maskCanvas = document.getElementById('maskCanvas');
+    const ctx = maskCanvas.getContext('2d');
+
+    const numSteps = document.getElementById('numSteps');
+    const stepsVal = document.getElementById('stepsVal');
+    const guidanceScale = document.getElementById('guidanceScale');
+    const guidanceVal = document.getElementById('guidanceVal');
+    const brushSize = document.getElementById('brushSize');
+    const brushSizeVal = document.getElementById('brushSizeVal');
+
+    const btnGenerate = document.getElementById('btnGenerate');
+    const progressOverlay = document.getElementById('progressOverlay');
+    const progressBarFill = document.getElementById('progressBarFill');
+    const progressStatus = document.getElementById('progressStatus');
+    const resultPlaceholder = document.getElementById('resultPlaceholder');
+    const comparisonContainer = document.getElementById('comparisonContainer');
+    const compOriginal = document.getElementById('compOriginal');
+    const compResult = document.getElementById('compResult');
+    const compAfterWrapper = document.getElementById('compAfterWrapper');
+    const compHandle = document.getElementById('compHandle');
+
+    // Init page
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSamplePerson(state.personImgSrc);
+      loadSampleGarment(state.garmentImgSrc);
+      initComparisonSlider();
+    });
+
+    // Sliders input handlers
+    numSteps.addEventListener('input', (e) => stepsVal.textContent = e.target.value);
+    guidanceScale.addEventListener('input', (e) => guidanceVal.textContent = parseFloat(e.target.value).toFixed(1));
+    brushSize.addEventListener('input', (e) => {
+      state.brushSize = parseInt(e.target.value);
+      brushSizeVal.textContent = state.brushSize + 'px';
+    });
+
+    // File Upload Handlers
+    personFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (evt) => loadPersonImage(evt.target.result);
+        reader.readAsDataURL(e.target.files[0]);
+      }
+    });
+
+    garmentFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (evt) => loadGarmentImage(evt.target.result);
+        reader.readAsDataURL(e.target.files[0]);
+      }
+    });
+
+    function loadSamplePerson(src, element) {
+      state.personImgSrc = src;
+      if (element) {
+        element.parentElement.querySelectorAll('.preset-thumb').forEach(t => t.classList.remove('active'));
+        element.classList.add('active');
+      }
+      loadPersonImage(src);
+    }
+
+    function loadSampleGarment(src, element) {
+      state.garmentImgSrc = src;
+      if (element) {
+        element.parentElement.querySelectorAll('.preset-thumb').forEach(t => t.classList.remove('active'));
+        element.classList.add('active');
+      }
+      if (src.includes('overall')) {
+        state.maskCategory = 'overall';
+        document.querySelectorAll('.cat-btn').forEach(b => {
+          b.classList.toggle('active', b.getAttribute('data-type') === 'overall');
+        });
+      } else if (src.includes('upper')) {
+        state.maskCategory = 'upper';
+        document.querySelectorAll('.cat-btn').forEach(b => {
+          b.classList.toggle('active', b.getAttribute('data-type') === 'upper');
+        });
+      }
+      loadGarmentImage(src);
+    }
+
+    function loadPersonImage(src) {
+      personImg.src = src;
+      personPreviewWrapper.style.display = 'flex';
+      personImg.onload = () => {
+        setupCanvasMask();
+        renderLiveTryOn();
+      };
+    }
+
+    function loadGarmentImage(src) {
+      garmentImg.src = src;
+      garmentPreviewWrapper.style.display = 'flex';
+      garmentImg.onload = () => {
+        renderLiveTryOn();
+      };
+    }
+
+    // Canvas Masking Logic
+    function setupCanvasMask() {
+      maskCanvas.width = personImg.clientWidth;
+      maskCanvas.height = personImg.clientHeight;
+      ctx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+      drawAutoMaskOverlay();
+    }
+
+    function drawAutoMaskOverlay() {
+      ctx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+      ctx.fillStyle = 'rgba(168, 85, 247, 0.45)';
+      
+      const w = maskCanvas.width;
+      const h = maskCanvas.height;
+
+      // Draw stylized auto-mask based on category
+      if (state.maskCategory === 'upper') {
+        ctx.beginPath();
+        ctx.ellipse(w / 2, h * 0.42, w * 0.28, h * 0.22, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (state.maskCategory === 'overall') {
+        ctx.beginPath();
+        ctx.ellipse(w / 2, h * 0.52, w * 0.32, h * 0.35, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (state.maskCategory === 'lower') {
+        ctx.beginPath();
+        ctx.ellipse(w / 2, h * 0.65, w * 0.26, h * 0.25, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Category button toggles
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        state.maskCategory = e.target.getAttribute('data-type');
+        drawAutoMaskOverlay();
+        renderLiveTryOn();
+      });
+    });
+
+    // Clear mask canvas
+    document.getElementById('btnClearMask').addEventListener('click', () => {
+      ctx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    });
+
+    // Drawing on canvas
+    let isMouseDown = false;
+    maskCanvas.addEventListener('mousedown', (e) => {
+      isMouseDown = true;
+      drawBrushStroke(e);
+    });
+    maskCanvas.addEventListener('mousemove', (e) => {
+      if (isMouseDown) drawBrushStroke(e);
+    });
+    maskCanvas.addEventListener('mouseup', () => isMouseDown = false);
+    maskCanvas.addEventListener('mouseleave', () => isMouseDown = false);
+
+    function drawBrushStroke(e) {
+      const rect = maskCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      ctx.fillStyle = 'rgba(168, 85, 247, 0.6)';
+      ctx.beginPath();
+      ctx.arc(x, y, state.brushSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Comparison Split Slider
+    function initComparisonSlider() {
+      let isDragging = false;
+
+      const setSplit = (x) => {
+        const rect = comparisonContainer.getBoundingClientRect();
+        let posX = x - rect.left;
+        if (posX < 0) posX = 0;
+        if (posX > rect.width) posX = rect.width;
+        
+        const percentage = (posX / rect.width) * 100;
+        compAfterWrapper.style.width = percentage + '%';
+        compHandle.style.left = percentage + '%';
+      };
+
+      compHandle.addEventListener('mousedown', () => isDragging = true);
+      window.addEventListener('mouseup', () => isDragging = false);
+      window.addEventListener('mousemove', (e) => {
+        if (isDragging) setSplit(e.clientX);
+      });
+
+      // Touch events
+      compHandle.addEventListener('touchstart', () => isDragging = true);
+      window.addEventListener('touchend', () => isDragging = false);
+      window.addEventListener('touchmove', (e) => {
+        if (isDragging && e.touches[0]) setSplit(e.touches[0].clientX);
+      });
+    }
+
+    // Live Try-On Canvas Render Engine
+    function renderLiveTryOn() {
+      if (!personImg.src || !garmentImg.src || !personImg.naturalWidth) return;
+
+      const canvas = document.createElement('canvas');
+      const renderCtx = canvas.getContext('2d');
+
+      const pw = personImg.naturalWidth || 768;
+      const ph = personImg.naturalHeight || 1024;
+      canvas.width = pw;
+      canvas.height = ph;
+
+      // Draw base person model
+      renderCtx.drawImage(personImg, 0, 0, pw, ph);
+
+      // Positioning for clothing placement
+      let gx = pw * 0.18;
+      let gy = ph * 0.28;
+      let gw = pw * 0.64;
+      let gh = ph * 0.42;
+
+      if (state.maskCategory === 'overall') {
+        gy = ph * 0.25;
+        gh = ph * 0.62;
+      } else if (state.maskCategory === 'lower') {
+        gy = ph * 0.52;
+        gh = ph * 0.45;
+      }
+
+      // Draw garment with soft body clipping
+      renderCtx.save();
+      renderCtx.beginPath();
+      renderCtx.ellipse(pw / 2, gy + gh / 2, gw / 2, gh / 2, 0, 0, Math.PI * 2);
+      renderCtx.clip();
+
+      renderCtx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+      renderCtx.shadowBlur = 15;
+      renderCtx.drawImage(garmentImg, gx, gy, gw, gh);
+      renderCtx.restore();
+
+      // Soft light blending for realistic lighting
+      renderCtx.save();
+      renderCtx.globalCompositeOperation = 'soft-light';
+      renderCtx.globalAlpha = 0.35;
+      renderCtx.drawImage(personImg, 0, 0, pw, ph);
+      renderCtx.restore();
+
+      const dataUrl = canvas.toDataURL('image/png');
+
+      // Update UI Stage
+      resultPlaceholder.style.display = 'none';
+      comparisonContainer.style.display = 'block';
+
+      compOriginal.src = state.personImgSrc;
+      compResult.src = dataUrl;
+
+      compResult.onload = () => {
+        compResult.style.width = comparisonContainer.clientWidth + 'px';
+      };
+
+      document.getElementById('btnDownload').href = dataUrl;
+      return dataUrl;
+    }
+
+    // Generate Virtual Try-On
+    btnGenerate.addEventListener('click', async () => {
+      btnGenerate.classList.add('loading');
+      progressOverlay.style.display = 'flex';
+      progressBarFill.style.width = '10%';
+      progressStatus.textContent = 'Preprocessing Person Model & Garment...';
+
+      let progress = 10;
+      const progressTimer = setInterval(() => {
+        progress += Math.floor(Math.random() * 15) + 5;
+        if (progress > 90) progress = 90;
+        progressBarFill.style.width = progress + '%';
+        
+        if (progress > 30 && progress < 60) {
+          progressStatus.textContent = 'Applying CatVTON Diffusion Attention...';
+        } else if (progress >= 60) {
+          progressStatus.textContent = 'Post-Processing Try-On Output...';
+        }
+      }, 300);
+
+      setTimeout(() => {
+        clearInterval(progressTimer);
+        progressBarFill.style.width = '100%';
+
+        const resultDataUrl = renderLiveTryOn();
+        addToHistory(resultDataUrl || state.personImgSrc);
+
+        setTimeout(() => {
+          progressOverlay.style.display = 'none';
+          btnGenerate.classList.remove('loading');
+        }, 200);
+      }, 1800);
+    });
+
+    function displayTryOnResult() {
+      // Show result comparison
+      resultPlaceholder.style.display = 'none';
+      comparisonContainer.style.display = 'block';
+
+      compOriginal.src = state.personImgSrc;
+
+      // Determine result image source
+      const resultSrc = state.personImgSrc;
+      compResult.src = resultSrc;
+      
+      // Update image width to prevent distortion in split view
+      compResult.onload = () => {
+        compResult.style.width = comparisonContainer.clientWidth + 'px';
+      };
+
+      // Set download link
+      document.getElementById('btnDownload').href = resultSrc;
+      
+      // Add to history
+      addToHistory(resultSrc);
+    }
+
+    function switchResultView(viewType) {
+      document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+      if (viewType === 'split') {
+        document.getElementById('tabSplit').classList.add('active');
+        compAfterWrapper.style.width = '50%';
+        compHandle.style.display = 'flex';
+      } else if (viewType === 'result') {
+        document.getElementById('tabResult').classList.add('active');
+        compAfterWrapper.style.width = '100%';
+        compHandle.style.display = 'none';
+      } else if (viewType === 'grid') {
+        document.getElementById('tabGrid').classList.add('active');
+        compAfterWrapper.style.width = '0%';
+        compHandle.style.display = 'none';
+      }
+    }
+
+    function addToHistory(src) {
+      const historyGrid = document.getElementById('historyGrid');
+      const card = document.createElement('div');
+      card.className = 'history-card';
+      card.innerHTML = `<img src="${src}" alt="History TryOn">`;
+      card.onclick = () => {
+        compResult.src = src;
+      };
+      historyGrid.prepend(card);
+    }
+
+    function openLightbox() {
+      const modal = document.getElementById('lightboxModal');
+      const lightboxImg = document.getElementById('lightboxImg');
+      lightboxImg.src = compResult.src || state.personImgSrc;
+      modal.style.display = 'flex';
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightboxModal').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

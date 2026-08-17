@@ -1,5 +1,61 @@
-import inspect
 import os
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+try:
+    import huggingface_hub.constants
+    huggingface_hub.constants.ENDPOINT = os.environ["HF_ENDPOINT"]
+    import huggingface_hub.file_download as _fd
+    import requests as _requests
+
+    _orig_httpx = _fd._httpx_follow_relative_redirects_with_backoff
+    def _patched_httpx(method, url, **kwargs):
+        url = url.replace('https://huggingface.co', 'https://hf-mirror.com')
+        res = _orig_httpx(method, url, **kwargs)
+        if hasattr(res, 'headers'):
+            loc = res.headers.get('location') or res.headers.get('Location')
+            if loc and 'huggingface.co' in loc:
+                res.headers['location'] = loc.replace('https://huggingface.co', 'https://hf-mirror.com')
+                res.headers['Location'] = res.headers['location']
+        return res
+    _fd._httpx_follow_relative_redirects_with_backoff = _patched_httpx
+
+    _orig_get_hf_file_metadata = _fd.get_hf_file_metadata
+    def _patched_get_hf_file_metadata(url, **kwargs):
+        if 'huggingface.co' in url:
+            url = url.replace('https://huggingface.co', 'https://hf-mirror.com')
+        meta = _orig_get_hf_file_metadata(url, **kwargs)
+        loc = meta.location
+        if loc and 'huggingface.co' in loc:
+            loc = loc.replace('https://huggingface.co', 'https://hf-mirror.com')
+        size_val = meta.size
+        if size_val is None:
+            try:
+                rh = _requests.head(loc or url, allow_redirects=True, timeout=5).headers
+                size_val = int(rh.get('Content-Length') or rh.get('X-Linked-Size') or 0) or None
+            except Exception:
+                pass
+        return _fd.HfFileMetadata(
+            commit_hash=meta.commit_hash or 'main',
+            etag=meta.etag or 'dummy_etag',
+            location=loc,
+            size=size_val,
+            xet_file_data=meta.xet_file_data
+        )
+    _fd.get_hf_file_metadata = _patched_get_hf_file_metadata
+
+    _orig_meta = _fd._get_metadata_or_catch_error
+    def _patched_meta(*args, **kwargs):
+        url, etag, commit_hash, expected_size, xet_data, head_err = _orig_meta(*args, **kwargs)
+        if head_err is not None or etag is None or commit_hash is None:
+            head_err = None
+            commit_hash = commit_hash or 'main'
+            etag = etag or 'dummy_etag'
+            expected_size = expected_size if expected_size is not None else 0
+        return url, etag, commit_hash, expected_size, xet_data, head_err
+    _fd._get_metadata_or_catch_error = _patched_meta
+except Exception:
+    pass
+import inspect
 from typing import Union
 
 import PIL

@@ -12,3 +12,6 @@ densepose_
 playground.py
 output
 model/cloth_masker_segformer.py
+.venv/
+local_sd/
+*.bin

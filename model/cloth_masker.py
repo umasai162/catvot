@@ -1,4 +1,11 @@
 import os
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+try:
+    import huggingface_hub.constants
+    huggingface_hub.constants.ENDPOINT = os.environ["HF_ENDPOINT"]
+except Exception:
+    pass
 from PIL import Image
 from typing import Union
 import numpy as np
@@ -160,7 +167,8 @@ class AutoMasker:
         device='cuda'):
         np.random.seed(0)
         torch.manual_seed(0)
-        torch.cuda.manual_seed(0)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(0)
         
         self.densepose_processor = DensePose(densepose_ckpt, device)
         self.schp_processor_atr = SCHP(ckpt_path=os.path.join(schp_ckpt, 'exp-schp-201908301523-atr.pth'), device=device)
